@@ -129,4 +129,17 @@ public class TarjetaController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+    //asignarle un titular a la tarjeta
+    @PutMapping("/card/titular")
+    public ResponseEntity<?> asignarTitular(@RequestBody TarjetaDTO tarjetaDTO) {
+        try {
+            if (tarjetaDTO.getCardId() == null || tarjetaDTO.getTitular() == null) {
+                return ResponseEntity.badRequest().body("Debe especificar el ID de la tarjeta y el titular");
+            }
+            TarjetaDTO updatedTarjeta = tarjetaService.asignarTitular(tarjetaDTO.getCardId(), tarjetaDTO.getTitular());
+            return ResponseEntity.ok(updatedTarjeta);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

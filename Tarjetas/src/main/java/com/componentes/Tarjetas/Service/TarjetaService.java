@@ -307,4 +307,28 @@ public class TarjetaService {
         
         return saldoInfo;
     }
+    
+    //asignarle un titular a la tarjeta
+    public TarjetaDTO asignarTitular(Long cardId, String titular) {
+        // Verificar que la tarjeta existe
+        Tarjeta tarjeta = tarjetaRepository.findById(cardId)
+                .orElseThrow(() -> new RuntimeException("No existe una tarjeta con el ID: " + cardId));
+                
+        // Validar que el titular no sea nulo o vacío
+        if (titular == null || titular.trim().isEmpty()) {
+            throw new RuntimeException("El titular no puede estar vacío");
+        }
+        
+        // Validar que la tarjeta no tenga titular asignado
+        if (!"sin cliente asignado".equals(tarjeta.getTitular())) {
+            throw new RuntimeException("La tarjeta ya tiene un titular asignado");
+        }
+        
+        // Asignar el nuevo titular
+        tarjeta.setTitular(titular);
+        
+        // Guardar los cambios
+        Tarjeta updatedTarjeta = tarjetaRepository.save(tarjeta);
+        return tarjetaMapper.toDto(updatedTarjeta);
+    }
 }
