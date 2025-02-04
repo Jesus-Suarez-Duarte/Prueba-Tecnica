@@ -3,6 +3,8 @@ package com.componentes.Tarjetas.ControllerTest;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -258,5 +260,164 @@ public class TarjetaControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(invalidTarjetaDTO)))
                 .andExpect(status().isBadRequest());
+    }
+    @Test
+    void createTarjeta_WhenServiceThrowsException_ShouldReturnConflict() throws Exception {
+        // Arrange
+        when(tarjetaService.saveTarjeta(any(TarjetaDTO.class)))
+                .thenThrow(new RuntimeException("Card already exists"));
+
+        // Act & Assert
+        mockMvc.perform(post("/api/tarjetas")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(tarjetaDTO)))
+                .andExpect(status().isConflict())
+                .andExpect(content().string("Card already exists"));
+    }
+
+    @Test
+    void generateTarjeta_WhenServiceThrowsException_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        when(tarjetaService.generateTarjeta(123456L))
+                .thenThrow(new RuntimeException("Invalid product ID"));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/tarjetas/card/123456/number")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Invalid product ID"));
+    }
+
+    @Test
+    void updateTarjeta_WhenServiceThrowsException_ShouldReturnNotFound() throws Exception {
+        // Arrange
+        when(tarjetaService.updateTarjeta(eq(123456789012L), any(TarjetaDTO.class)))
+                .thenThrow(new RuntimeException("Card not found"));
+
+        // Act & Assert
+        mockMvc.perform(put("/api/tarjetas/123456789012")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(tarjetaDTO)))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("Card not found"));
+    }
+
+    @Test
+    void activarTarjeta_WhenServiceThrowsException_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        when(tarjetaService.activarTarjeta(123456789012L))
+                .thenThrow(new RuntimeException("Card already active"));
+
+        // Act & Assert
+        mockMvc.perform(post("/api/tarjetas/card/enroll")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(tarjetaDTO)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Card already active"));
+    }
+
+    @Test
+    void desactivarTarjeta_WhenServiceThrowsException_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        when(tarjetaService.desactivarTarjeta(123456789012L))
+                .thenThrow(new RuntimeException("Card already inactive"));
+
+        // Act & Assert
+        mockMvc.perform(delete("/api/tarjetas/card/desactivar/123456789012")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Card already inactive"));
+    }
+
+    @Test
+    void deleteTarjeta_WhenServiceThrowsException_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        doThrow(new RuntimeException("Cannot delete card"))
+                .when(tarjetaService).deleteTarjeta(123456789012L);
+
+        // Act & Assert
+        mockMvc.perform(delete("/api/tarjetas/123456789012")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void consultarBalance_WhenServiceThrowsException_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        when(tarjetaService.consultarBalance(123456789012L))
+                .thenThrow(new RuntimeException("Card not found"));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/tarjetas/card/balance/123456789012")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Card not found"));
+    }
+
+    @Test
+    void asignarTitular_WhenServiceThrowsException_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        when(tarjetaService.asignarTitular(eq(123456789012L), any(String.class)))
+                .thenThrow(new RuntimeException("Invalid titular"));
+
+        // Act & Assert
+        mockMvc.perform(put("/api/tarjetas/card/titular")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(tarjetaDTO)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Invalid titular"));
+    }
+    
+    @Test
+    void deleteTarjeta_WhenSuccess_ShouldReturnOk() throws Exception {
+        // Arrange
+        doNothing().when(tarjetaService).deleteTarjeta(123456789012L);
+
+        // Act & Assert
+        mockMvc.perform(delete("/api/tarjetas/123456789012")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void bloquearTarjeta_WhenServiceThrowsException_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        when(tarjetaService.bloquearTarjeta(123456789012L))
+                .thenThrow(new RuntimeException("Card already blocked"));
+
+        // Act & Assert
+        mockMvc.perform(delete("/api/tarjetas/card/123456789012")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Card already blocked"));
+    }
+
+    @Test
+    void recargarTarjeta_WhenBalanceIsNull_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        SaldoTarjDTO invalidSaldoDTO = new SaldoTarjDTO();
+        invalidSaldoDTO.setCardId(123456789012L);
+        invalidSaldoDTO.setBalance(null);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/tarjetas/card/balance")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidSaldoDTO)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Debe especificar el monto a recargar"));
+    }
+
+    @Test
+    void recargarTarjeta_WhenServiceThrowsException_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        when(tarjetaService.recargarTarjeta(eq(123456789012L), any(Double.class)))
+                .thenThrow(new RuntimeException("Invalid balance"));
+
+        // Act & Assert
+        mockMvc.perform(post("/api/tarjetas/card/balance")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(saldoDTO)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Invalid balance"));
     }
 }
